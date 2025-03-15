@@ -2,11 +2,13 @@
 
 A lightweight FORTH programming language implementation for the Raspberry Pi Pico, developed in Python.
 
-If you're not familair with FORTH, here's a quick overview:
+If you're not familiar with FORTH, here's a quick overview:
 
 FORTH is a stack-based programming language that emphasizes simplicity and extensibility. This implementation provides a lightweight version suitable for microcontrollers like the Raspberry Pi Pico.
 
 You can learn the basics of the language from the free online version of Leon Broadies's classic [Starting FORTH](https://www.forth.com/starting-forth/). 
+
+There's a short [video demonstration](https://youtu.be/fXhMrK3_kTY) on YouTube
 
 ## Installation
 
