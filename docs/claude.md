@@ -1,5 +1,5 @@
 **RC**
-_Great work, but I realised this morning that what I'd like best is a FORTH VM for the Pico using Python._
+What I'd like best is a FORTH VM for the Pico using Python._
 
 I'll create a Python implementation of a FORTH virtual machine that's suitable for the Raspberry Pi Pico. The Pico supports MicroPython, so I'll design this with MicroPython compatibility in mind.
 
