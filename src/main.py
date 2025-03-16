@@ -207,12 +207,25 @@ class ForthVM:
                 instr = self.code_space[i]
                 i += 1
                 
-                if instr >= 0:
-                    # Word reference - execute it
-                    self.execute(instr)
-                else:
-                    # Literal value - push to stack
-                    self.push(-instr - 1)
+                if isinstance(instr, int):
+                    if instr >= 0:
+                        if instr == self.find_word("0BRANCH"):
+                            # This is a conditional branch instruction
+                            # Pop the condition from the stack
+                            condition = self.pop()
+                            
+                            # If condition is false (0), branch to the target address
+                            if condition == 0:
+                                i = self.code_space[i]
+                            else:
+                                # Skip the branch target
+                                i += 1
+                        else:
+                            # Word reference - execute it
+                            self.execute(instr)
+                    else:
+                        # Literal value - push to stack
+                        self.push(-instr - 1)
             
     def interpret(self, input_str):
         """Interpret a line of FORTH code"""
@@ -260,18 +273,18 @@ class ForthVM:
     # Initialize built-in words
     def _init_primitives(self):
         # Stack manipulation
-        self.add_primitive("DUP", lambda vm: vm.push(vm.stack[vm.sp - 1] if vm.sp > 0 else 0))
+        self.add_primitive("DUP", lambda vm: vm.push(vm.stack[vm.sp-1] if vm.sp > 0 else 0))
         self.add_primitive("DROP", lambda vm: vm.pop())
-        self.add_primitive("SWAP", lambda vm: self._swap())
-        self.add_primitive("OVER", lambda vm: self._over())
-        self.add_primitive("ROT", lambda vm: self._rot())
+        self.add_primitive("SWAP", lambda vm: vm._swap())
+        self.add_primitive("OVER", lambda vm: vm._over())
+        self.add_primitive("ROT", lambda vm: vm._rot())
         
         # Arithmetic
         self.add_primitive("+", lambda vm: vm.push(vm.pop() + vm.pop()))
-        self.add_primitive("-", lambda vm: self._sub())
+        self.add_primitive("-", lambda vm: vm._sub())
         self.add_primitive("*", lambda vm: vm.push(vm.pop() * vm.pop()))
-        self.add_primitive("/", lambda vm: self._div())
-        self.add_primitive("MOD", lambda vm: self._mod())
+        self.add_primitive("/", lambda vm: vm._div())
+        self.add_primitive("MOD", lambda vm: vm._mod())
         
         # Logic
         self.add_primitive("AND", lambda vm: vm.push(vm.pop() & vm.pop()))
@@ -280,34 +293,35 @@ class ForthVM:
         self.add_primitive("NOT", lambda vm: vm.push(~vm.pop() & 0xFFFF))
         
         # Comparison
-        self.add_primitive("=", lambda vm: self._equals())
-        self.add_primitive("<>", lambda vm: self._not_equals())
-        self.add_primitive("<", lambda vm: self._less_than())
-        self.add_primitive(">", lambda vm: self._greater_than())
-        self.add_primitive("<=", lambda vm: self._less_equal())
-        self.add_primitive(">=", lambda vm: self._greater_equal())
+        self.add_primitive("=", lambda vm: vm._equals())
+        self.add_primitive("<>", lambda vm: vm._not_equals())
+        self.add_primitive("<", lambda vm: vm._less_than())
+        self.add_primitive(">", lambda vm: vm._greater_than())
+        self.add_primitive("<=", lambda vm: vm._less_equal())
+        self.add_primitive(">=", lambda vm: vm._greater_equal())
         
         # I/O
-        self.add_primitive("EMIT", lambda vm: self._emit())
+        self.add_primitive("EMIT", lambda vm: vm._emit())
         self.add_primitive("CR", lambda vm: print())
-        self.add_primitive(".", lambda vm: self._dot())
-        self.add_primitive(".S", lambda vm: self._dot_s())
-        self.add_primitive(".\"", lambda vm: self._dot_quote(), immediate=True)
-        self.add_primitive("(\")", lambda vm: self._print_string())  # Runtime routine for ."
+        self.add_primitive(".", lambda vm: vm._dot())
+        self.add_primitive(".S", lambda vm: vm._dot_s())
+        self.add_primitive(".\"", lambda vm: vm._dot_quote(), immediate=True)
+        self.add_primitive("(\")", lambda vm: vm._print_string())  # Runtime routine for ."
         
         # Defining words
-        self.add_primitive(":", lambda vm: self._colon())
-        self.add_primitive(";", lambda vm: self._semicolon(), immediate=True)
-        self.add_primitive("EXIT", lambda vm: self._exit())
+        self.add_primitive(":", lambda vm: vm._colon())
+        self.add_primitive(";", lambda vm: vm._semicolon(), immediate=True)
+        self.add_primitive("EXIT", lambda vm: vm._exit())
         
         # Control flow
-        self.add_primitive("IF", lambda vm: self._if(), immediate=True)
-        self.add_primitive("ELSE", lambda vm: self._else(), immediate=True)
-        self.add_primitive("THEN", lambda vm: self._then(), immediate=True)
-        self.add_primitive("DO", lambda vm: self._do(), immediate=True)
-        self.add_primitive("LOOP", lambda vm: self._loop(), immediate=True)
-        self.add_primitive("I", lambda vm: self._i())
-        self.add_primitive("J", lambda vm: self._j())
+        self.add_primitive("0BRANCH", lambda vm: None)  # Special instruction handled in execute
+        self.add_primitive("IF", lambda vm: vm._if(), immediate=True)
+        self.add_primitive("ELSE", lambda vm: vm._else(), immediate=True)
+        self.add_primitive("THEN", lambda vm: vm._then(), immediate=True)
+        self.add_primitive("DO", lambda vm: vm._do(), immediate=True)
+        self.add_primitive("LOOP", lambda vm: vm._loop(), immediate=True)
+        self.add_primitive("I", lambda vm: vm._i())
+        self.add_primitive("J", lambda vm: vm._j())
     
     # Implementation of primitive words
     def _swap(self):
@@ -461,6 +475,14 @@ class ForthVM:
         if not self.compiling:
             self._error("'IF' outside of definition")
             return
+        
+        # Add 0BRANCH instruction
+        branch_instr = self.find_word("0BRANCH")
+        if branch_instr < 0:
+            self._error("0BRANCH word not found")
+            return
+            
+        self.add_to_definition(branch_instr)
         
         # Add placeholder for branch offset
         branch_idx = self.code_idx

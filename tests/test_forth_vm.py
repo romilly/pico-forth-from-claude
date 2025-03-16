@@ -158,14 +158,14 @@ class TestForthVM(unittest.TestCase):
         
         # Test with a positive number (should add 1)
         self.forth.interpret("5 ADD1IF")
-        self.assertEqual(self.forth.stack[0], 7)  # 5 + 1 + 1 = 7 (due to DUP)
+        self.assertEqual(self.forth.stack[0], 6)  # 5 + 1 = 6 (due to DUP)
         
         # Clear the stack
         self.forth.sp = 0
         
         # Test with zero (should not add 1)
         self.forth.interpret("0 ADD1IF")
-        self.assertEqual(self.forth.stack[0], 1)  # 0 + 1 = 1 (due to DUP and comparison leaving a value)
+        self.assertEqual(self.forth.stack[0], 0)  # 0 (due to DUP, but no addition)
     
     def test_do_loop_structure(self):
         """Test DO-LOOP control structure"""
