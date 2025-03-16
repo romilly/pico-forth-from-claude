@@ -292,6 +292,8 @@ class ForthVM:
         self.add_primitive("CR", lambda vm: print())
         self.add_primitive(".", lambda vm: self._dot())
         self.add_primitive(".S", lambda vm: self._dot_s())
+        self.add_primitive(".\"", lambda vm: self._dot_quote(), immediate=True)
+        self.add_primitive("(\")", lambda vm: self._print_string())  # Runtime routine for ."
         
         # Defining words
         self.add_primitive(":", lambda vm: self._colon())
@@ -530,6 +532,69 @@ class ForthVM:
         
         # Access outer loop index
         self.push(self.return_stack[self.rsp - 3])
+    
+    def _dot_quote(self):
+        """Compile a string literal for printing"""
+        if not self.compiling:
+            # Skip the space after ."
+            if self.input_pos < len(self.input_buffer) and self.input_buffer[self.input_pos].isspace():
+                self.input_pos += 1
+            
+            # Find the closing quote
+            start = self.input_pos
+            while self.input_pos < len(self.input_buffer) and self.input_buffer[self.input_pos] != '"':
+                self.input_pos += 1
+            
+            if self.input_pos >= len(self.input_buffer):
+                self._error("Unterminated string")
+                return
+            
+            # Extract and print the string
+            string = self.input_buffer[start:self.input_pos]
+            print(string, end='')
+            
+            # Skip the closing quote
+            self.input_pos += 1
+            return
+        
+        # Compile-time behavior
+        # Skip the space after ."
+        if self.input_pos < len(self.input_buffer) and self.input_buffer[self.input_pos].isspace():
+            self.input_pos += 1
+        
+        # Find the closing quote
+        start = self.input_pos
+        while self.input_pos < len(self.input_buffer) and self.input_buffer[self.input_pos] != '"':
+            self.input_pos += 1
+        
+        if self.input_pos >= len(self.input_buffer):
+            self._error("Unterminated string")
+            return
+        
+        # Extract the string
+        string = self.input_buffer[start:self.input_pos]
+        
+        # Skip the closing quote
+        self.input_pos += 1
+        
+        # In this VM implementation, we'll use a different approach
+        # We'll compile code to push each character and call EMIT
+        # This is less efficient but works with the existing VM architecture
+        emit_idx = self.find_word("EMIT")
+        if emit_idx < 0:
+            self._error("EMIT word not found")
+            return
+        
+        for char in string:
+            # Add code to push character and emit it
+            self.add_to_definition(-ord(char) - 1)  # Push character as literal
+            self.add_to_definition(emit_idx)
+    
+    def _print_string(self):
+        """Runtime routine for printing strings - not used in this implementation"""
+        # This method is not used in the current implementation
+        # We're using a series of character literals and EMIT calls instead
+        pass
 
 
 # Entry point for Pico application

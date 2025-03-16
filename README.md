@@ -72,7 +72,19 @@ HELLO
 ```
 Output: `Hello!`
 
-### 6. Create a loop to count from 1 to 5
+### 6. Using the ." (dot-quote) word for string printing
+```forth
+." Hello, FORTH world!"
+```
+Output: `Hello, FORTH world!`
+
+```forth
+: GREET ." Welcome to Pico FORTH! " ;
+GREET
+```
+Output: `Welcome to Pico FORTH! `
+
+### 7. Create a loop to count from 1 to 5
 ```forth
 : COUNT 1 5 DO I . LOOP ;
 COUNT
@@ -172,6 +184,3 @@ def load_dictionary(forth, filename="forth_dict.txt"):
         print(f"Dictionary loaded from {filename}")
     except Exception as e:
         print(f"Error loading dictionary: {e}")
-```
-
-
