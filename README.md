@@ -2,7 +2,7 @@
 
 ## Update ##
 
-It turns out that this implementation is riddeld with errors. I'm working on a replacement.
+It turns out that this implementation is riddled with errors. I'm working on a replacement.
 
 Don't use this code!
 
