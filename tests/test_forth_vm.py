@@ -195,16 +195,92 @@ class TestForthVM(unittest.TestCase):
             self.assertEqual(fake_out.getvalue(), "Hello, FORTH!")
     
     def test_error_handling(self):
-        """Test error handling"""
+        """Test error handling in the FORTH VM"""
+        # Reset to a fresh VM
+        self.forth = ForthVM()
+        
         # Test stack underflow
         with patch('sys.stdout', new=StringIO()) as fake_out:
             self.forth.interpret("DROP")  # Stack is empty
             self.assertTrue("Error: Stack underflow" in fake_out.getvalue())
         
+        # Reset VM
+        self.forth = ForthVM()
+        
         # Test unknown word
         with patch('sys.stdout', new=StringIO()) as fake_out:
             self.forth.interpret("UNKNOWN_WORD")
             self.assertTrue("Error: Unknown word" in fake_out.getvalue())
+        
+        # Reset VM
+        self.forth = ForthVM()
+        
+        # Test IF outside of definition
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            self.forth.interpret("IF")
+            self.assertTrue("Error: 'IF' outside of definition" in fake_out.getvalue())
+    
+    def test_else_structure(self):
+        """Test IF-ELSE-THEN control structure"""
+        # Test the true branch (IF part)
+        forth = ForthVM()
+        forth.interpret(": TEST-IF-TRUE 1 IF 42 ELSE 24 THEN ;")
+        forth.interpret("TEST-IF-TRUE")
+        self.assertEqual(forth.pop(), 42)
+        
+        # Test the false branch (ELSE part)
+        forth = ForthVM()
+        forth.interpret(": TEST-IF-FALSE 0 IF 42 ELSE 24 THEN ;")
+        forth.interpret("TEST-IF-FALSE")
+        self.assertEqual(forth.pop(), 24)
+    
+    def test_additional_comparison_operators(self):
+        """Test additional comparison operators"""
+        # Reset to a fresh VM
+        self.forth = ForthVM()
+        
+        # Test less than or equal
+        self.forth.interpret("5 5 <=")
+        self.assertEqual(self.forth.pop(), -1)  # True
+        
+        self.forth.interpret("4 5 <=")
+        self.assertEqual(self.forth.pop(), -1)  # True
+        
+        self.forth.interpret("6 5 <=")
+        self.assertEqual(self.forth.pop(), 0)   # False
+        
+        # Test greater than or equal
+        self.forth.interpret("5 5 >=")
+        self.assertEqual(self.forth.pop(), -1)  # True
+        
+        self.forth.interpret("6 5 >=")
+        self.assertEqual(self.forth.pop(), -1)  # True
+        
+        self.forth.interpret("4 5 >=")
+        self.assertEqual(self.forth.pop(), 0)   # False
+        
+        # Test not equal
+        self.forth.interpret("5 6 <>")
+        self.assertEqual(self.forth.pop(), -1)  # True
+        
+        self.forth.interpret("5 5 <>")
+        self.assertEqual(self.forth.pop(), 0)   # False
+    
+    def test_dot_quote(self):
+        """Test dot-quote string printing"""
+        # Reset to a fresh VM
+        self.forth = ForthVM()
+        
+        # Test dot-quote in interpreter mode
+        with unittest.mock.patch('sys.stdout', new=StringIO()) as fake_stdout:
+            self.forth.interpret(".\" Hello, World!\"")
+            self.assertEqual(fake_stdout.getvalue(), "Hello, World!")
+        
+        # Test dot-quote in a definition
+        with unittest.mock.patch('sys.stdout', new=StringIO()) as fake_stdout:
+            self.forth.interpret(": GREET .\" Hello from FORTH!\" ;")
+            self.forth.interpret("GREET")
+            self.assertEqual(fake_stdout.getvalue(), "Hello from FORTH!")
     
     def test_16bit_constraints(self):
         """Test 16-bit value constraints"""

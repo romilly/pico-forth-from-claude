@@ -1,5 +1,13 @@
 # Raspberry Pi Pico FORTH VM
 
+## Update ##
+
+It turns out that this implementation is riddeld with errors. I'm working on a replacement.
+
+Don't use this code!
+
+### Bad code follows.
+
 A lightweight FORTH programming language implementation for the Raspberry Pi Pico, developed in Python.
 
 If you're not familiar with FORTH, here's a quick overview:

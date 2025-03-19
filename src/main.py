@@ -220,6 +220,9 @@ class ForthVM:
                             else:
                                 # Skip the branch target
                                 i += 1
+                        elif instr == self.find_word("BRANCH"):
+                            # Unconditional branch
+                            i = self.code_space[i]
                         else:
                             # Word reference - execute it
                             self.execute(instr)
@@ -272,17 +275,23 @@ class ForthVM:
     
     # Initialize built-in words
     def _init_primitives(self):
+        """Initialize built-in words"""
         # Stack manipulation
-        self.add_primitive("DUP", lambda vm: vm.push(vm.stack[vm.sp-1] if vm.sp > 0 else 0))
+        self.add_primitive("DUP", lambda vm: vm.push(vm.stack[vm.sp-1] if vm.sp > 0 else vm._error("Stack underflow")))
         self.add_primitive("DROP", lambda vm: vm.pop())
         self.add_primitive("SWAP", lambda vm: vm._swap())
         self.add_primitive("OVER", lambda vm: vm._over())
         self.add_primitive("ROT", lambda vm: vm._rot())
         
+        # Return stack
+        self.add_primitive(">R", lambda vm: vm.rpush(vm.pop()))
+        self.add_primitive("R>", lambda vm: vm.push(vm.rpop()))
+        self.add_primitive("R@", lambda vm: vm.push(vm.return_stack[vm.rsp-1] if vm.rsp > 0 else vm._error("Return stack underflow")))
+        
         # Arithmetic
-        self.add_primitive("+", lambda vm: vm.push(vm.pop() + vm.pop()))
+        self.add_primitive("+", lambda vm: vm.push(vm.pop() + vm.pop() if vm.sp >= 2 else vm._error("Stack underflow")))
         self.add_primitive("-", lambda vm: vm._sub())
-        self.add_primitive("*", lambda vm: vm.push(vm.pop() * vm.pop()))
+        self.add_primitive("*", lambda vm: vm.push(vm.pop() * vm.pop() if vm.sp >= 2 else vm._error("Stack underflow")))
         self.add_primitive("/", lambda vm: vm._div())
         self.add_primitive("MOD", lambda vm: vm._mod())
         
@@ -305,16 +314,15 @@ class ForthVM:
         self.add_primitive("CR", lambda vm: print())
         self.add_primitive(".", lambda vm: vm._dot())
         self.add_primitive(".S", lambda vm: vm._dot_s())
-        self.add_primitive(".\"", lambda vm: vm._dot_quote(), immediate=True)
-        self.add_primitive("(\")", lambda vm: vm._print_string())  # Runtime routine for ."
         
         # Defining words
         self.add_primitive(":", lambda vm: vm._colon())
         self.add_primitive(";", lambda vm: vm._semicolon(), immediate=True)
         self.add_primitive("EXIT", lambda vm: vm._exit())
         
-        # Control flow
+        # Control structures
         self.add_primitive("0BRANCH", lambda vm: None)  # Special instruction handled in execute
+        self.add_primitive("BRANCH", lambda vm: None)   # Special instruction for unconditional branch
         self.add_primitive("IF", lambda vm: vm._if(), immediate=True)
         self.add_primitive("ELSE", lambda vm: vm._else(), immediate=True)
         self.add_primitive("THEN", lambda vm: vm._then(), immediate=True)
@@ -322,6 +330,10 @@ class ForthVM:
         self.add_primitive("LOOP", lambda vm: vm._loop(), immediate=True)
         self.add_primitive("I", lambda vm: vm._i())
         self.add_primitive("J", lambda vm: vm._j())
+        
+        # String literals
+        self.add_primitive('."', lambda vm: vm._dot_quote(), immediate=True)
+        self.add_primitive('(")', lambda vm: vm._print_string())  # Runtime routine for ."
     
     # Implementation of primitive words
     def _swap(self):
@@ -500,6 +512,14 @@ class ForthVM:
         if_branch_idx = self.rpop()
         
         # Add unconditional branch to skip ELSE part
+        branch_instr = self.find_word("BRANCH")
+        if branch_instr < 0:
+            self._error("BRANCH word not found")
+            return
+            
+        self.add_to_definition(branch_instr)
+        
+        # Add placeholder for branch offset
         else_branch_idx = self.code_idx
         self.add_to_definition(None)  # Will fill in later
         
